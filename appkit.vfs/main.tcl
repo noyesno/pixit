@@ -5,6 +5,12 @@ set pixit_size  16
 
 set pixit_db [dict create]
 
+set pixit_filetypes {
+  {"Pixit Files" ".pixit"}
+  {"XBM Files"   ".xbm"}
+  {"All Files"   "*"}
+}
+
 
 bind . <F12> "console show"
 
@@ -33,11 +39,50 @@ bind .c    <Button1-Motion>        "pixit_click %x %y 1"
 bind .c    <Button3-Motion>        "pixit_click %x %y -1"
 bind .list <Double-1> "pixit_load"
 
-proc pixit_fsave {} {
-  set file [tk_getSaveFile -defaultextension ".pixit"]
+proc xbm_save {file data} {
+  set width  [string length [lindex $data 0]]
+  set height [llength $data]
+
+  set bytes [list]
+  foreach line $data {
+    binary scan [binary format b* $line] cu* bytes_line
+    set row [list]
+    foreach b $bytes_line { lappend row [format "0x%x" $b] }
+    lappend bytes [join $row ","]
+  }
+
   set fout [open $file w]
-  puts $fout [format "return {\n%s\n}" $::pixit_db]
+  puts $fout "#define i_width  $width"
+  puts $fout "#define i_height $height"
+  puts $fout "static char i_bits\[\] = {"
+  puts $fout [join $bytes ",\n"]
+  puts $fout "}"
   close $fout
+
+  return
+}
+
+proc pixit_fsave {} {
+  set file [tk_getSaveFile -defaultextension ".pixit" -filetypes $::pixit_filetypes]
+
+  if {$file eq ""} {
+    return
+  }
+
+  set ext [file ext $file]
+
+  switch $ext {
+    .xbm {
+      set data [pixit_get]
+      xbm_save $file $data
+    }
+    default {
+     set fout [open $file w]
+     puts $fout [format "return {\n%s\n}" $::pixit_db]
+     close $fout
+    }
+  }
+
 }
 
 proc pixit_fopen {} {
@@ -104,8 +149,8 @@ proc pixit_get {} {
   set y 0
 
   set pixtext ""
-  for {set j 0} {$j<=$::pixit_sizey} {incr j} {
-    for {set i 0} {$i<=$::pixit_sizex} {incr i} {
+  for {set j 0} {$j<$::pixit_sizey} {incr j} {
+    for {set i 0} {$i<$::pixit_sizex} {incr i} {
       set tag "pix_${i}_${j}"
       set color [.c itemcget $tag -fill]
       if {$color eq ""} {
@@ -125,8 +170,6 @@ proc pixit_get {} {
 proc pixit_save {} {
 
   set pixtext [pixit_get]
-
-  puts $pixtext
 
   set exist [dict exists $::pixit_db $::pixit_name]
 
@@ -174,8 +217,8 @@ proc pixit_reset {} {
 
   set x 0
   set y 0
-  for {set j 0} {$j<=$::pixit_sizey} {incr j} {
-    for {set i 0} {$i<=$::pixit_sizex} {incr i} {
+  for {set j 0} {$j<$::pixit_sizey} {incr j} {
+    for {set i 0} {$i<$::pixit_sizex} {incr i} {
       set tag "pix_${i}_${j}"
 
       switch $::pixit_style {
