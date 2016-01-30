@@ -29,6 +29,7 @@ pack [spinbox .f.nx   -textvar pixit_sizex -width 4 -from 1 -to 256] -side right
 pack [frame .fs] -side top -fill x
 pack [button .fs.open -text "Open" -command "pixit_fopen"] -side left -fill x -expand 1
 pack [button .fs.save -text "Save" -command "pixit_fsave"] -side left -fill x -expand 1
+pack [button .preview -text "Preview All" -command pixit_preview_all ] -side top -fill x
 pack [listbox .list] -side top -fill both -expand 1
 
 pack [entry  .name  -textvar pixit_name] -side left
@@ -90,6 +91,72 @@ proc pixit_fopen {} {
   set ::pixit_db [source $file]
   pixit_reset
   pixit_list
+}
+
+set text_pt 0.7
+set text_px 4
+set text_cw 28
+set text_ch 36
+
+proc preview.redraw {win args} {
+  set OX 32
+  set OY 32
+
+  set Y $OX
+  set X $OY
+
+  set unit "mm"
+  set unit ""
+
+  $win.canvas delete all
+  set pt [expr {$::text_px*$::text_pt}]
+
+  set idx 0
+  dict for {name data} $::pixit_db {
+    incr idx
+
+    set y $Y 
+    foreach line [split $data "\n"] {
+      set x $X
+      foreach v [split $line ""] {
+        if {$v} {
+          $win.canvas create oval ${x}$unit ${y}$unit [expr $x+$pt]$unit [expr $y+$pt]$unit -fill red -width 0
+	}
+        set x [expr {$x+$::text_px}]
+      }
+      set y [expr {$y+$::text_px}]
+    }
+
+    set X [expr $X+ $::text_cw]
+
+    if {$idx%9==0} {
+      set Y [expr $Y+$::text_ch]
+      set X $OX
+    }
+  }
+
+}
+
+proc pixit_preview_all {} {
+  set win .fpreview
+  toplevel $win
+  pack [frame $win.ctrl] -side bottom -fill x -expand 1
+  pack [canvas $win.canvas] -side bottom -fill both -expand 1
+  pack [frame $win.f] -side top -fill x
+
+
+  pack [label  $win.f.lpt -text "Pixle:"] -side left
+  pack [ttk::spinbox $win.f.ps -width 4 -textvar text_px -from 1 -to 16 ] -side left
+  pack [label  $win.f.sp -text "/"] -side left
+  pack [ttk::spinbox $win.f.pt -width 4 -textvar text_pt -from 0 -to 1.0 -incr 0.1] -side left
+
+  pack [label  $win.f.lchar -text " Char:"] -side left
+  pack [entry  $win.f.cw -width 6 -textvar text_cw] -side left
+  pack [label  $win.f.x1 -text "x"] -side left
+  pack [entry  $win.f.ch -width 6 -textvar text_ch] -side left
+  pack [button $win.f.redraw -text "Redraw" -command [list preview.redraw $win]] -side left -fill x -expand 1
+
+  preview.redraw $win
 }
 
 proc pixit_click {x y {motion 0}} {
