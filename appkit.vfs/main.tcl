@@ -1,4 +1,6 @@
 
+set APP_DIR [file dir [info script]]
+
 set pixit_sizex  8
 set pixit_sizey  8
 set pixit_size  16
@@ -14,26 +16,60 @@ set pixit_filetypes {
 
 bind . <F12> "console show"
 
-pack [frame .f] -side right -fill both -expand 1
 
-pack [scale .f.s -orient horizontal -from 1 -to 32 -variable pixit_size -command pixit_redraw] -side bottom -fill x
-pack [canvas .c]     -side bottom -fill both -expand 1 -in .f
-pack [button .f.clear -text "Reset" -command "pixit_reset"] -side right
+source $APP_DIR/res/photo.tcl
+
+#--------------------------------------------#
+
+wm title . "Pixit"
+
+#--------------------------------------------#
+
+pack [frame .actions] -side bottom -fill x
+pack [button .actions.fopen -height 2 -text "Open" -command "pixit_fopen" \
+    -image fileopen22 -compound left \
+  ] -side left -fill both -expand 1
+pack [button .actions.fsave -text "Save" -command "pixit_fsave" \
+    -image filesave22 -compound left \
+  ] -side left -fill both -expand 1
+pack [button .actions.preview -text "Preview" -command "pixit_preview" \
+    -image viewmag22 -compound left \
+  ] -side left -fill both -expand 1
+pack [button .actions.about -text "About" \
+    -image acthelp22 -compound left \
+  ] -side left -fill both -expand 1
+
+
+#--------------------------------------------#
+
+pack [frame .flist] -side left -fill y
+pack [scale  .s -orient horizontal -from 1 -to 32 -variable pixit_size -command pixit_redraw] -side bottom -fill x
+pack [canvas .c] -side bottom -fill both -expand 1
+pack [frame .f] -side right
+
+#--------------------------------------------#
+
 tk_optionMenu .f.style pixit_style "square" "circle"
-pack .f.style -side right
-pack [spinbox .f.ny   -textvar pixit_sizey -width 4 -from 1 -to 256] -side right
-pack [label  .f.x     -text "x"] -side right
-pack [spinbox .f.nx   -textvar pixit_sizex -width 4 -from 1 -to 256] -side right
 
 
-pack [frame .fs] -side top -fill x
-pack [button .fs.open -text "Open" -command "pixit_fopen"] -side left -fill x -expand 1
-pack [button .fs.save -text "Save" -command "pixit_fsave"] -side left -fill x -expand 1
-pack [button .preview -text "Preview All" -command pixit_preview_all ] -side top -fill x
-pack [listbox .list] -side top -fill both -expand 1
+pack [spinbox .f.nx   -textvar pixit_sizex -width 4 -from 1 -to 256] -side left
+pack [label  .f.x     -text "x"] -side left
+pack [spinbox .f.ny   -textvar pixit_sizey -width 4 -from 1 -to 256] -side left
+pack .f.style -side left
+pack [button .f.clear -text "Reset" -command "pixit_reset" \
+    -image actreload16 -compound left \
+  ] -side left -fill x
 
-pack [entry  .name  -textvar pixit_name] -side left
-pack [button .apply -text "Add"  -command "pixit_save"]  -side left
+
+# pack [frame .fs] -side top -fill x
+# pack [button .fs.open -text "Open" -command "pixit_fopen"] -side left -fill x -expand 1
+# pack [button .fs.save -text "Save" -command "pixit_fsave"] -side left -fill x -expand 1
+# pack [button .preview -text "Preview All" -command pixit_preview ] -side top -fill x
+
+
+pack [listbox .list] -side bottom -fill both -expand 1 -in .flist
+pack [entry  .flist.name  -textvar pixit_name] -side left
+pack [button .flist.apply -text "Add"  -command "pixit_save" -image actitemadd16 -compound left]  -side left
 
 bind .c    <1>                     "pixit_click %x %y"
 bind .c    <Button1-Motion>        "pixit_click %x %y 1"
@@ -88,6 +124,11 @@ proc pixit_fsave {} {
 
 proc pixit_fopen {} {
   set file [tk_getOpenFile -defaultextension ".pixit" -filetypes {{"Pixit File" ".pixit"}}]
+
+  if {$file eq ""} {
+    return
+  }
+
   set ::pixit_db [source $file]
   pixit_reset
   pixit_list
@@ -137,9 +178,10 @@ proc preview.redraw {win args} {
 
 }
 
-proc pixit_preview_all {} {
+proc pixit_preview {} {
   set win .fpreview
   toplevel $win
+  wm title $win "Pixit - Preview"
   pack [frame $win.ctrl] -side bottom -fill x -expand 1
   pack [canvas $win.canvas] -side bottom -fill both -expand 1
   pack [frame $win.f] -side top -fill x
