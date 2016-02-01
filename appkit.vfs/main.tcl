@@ -47,6 +47,12 @@ pack [scale  .s -orient horizontal -from 1 -to 32 -variable pixit_size -command 
 pack [canvas .c] -side bottom -fill both -expand 1
 pack [frame .f] -side right
 
+button .c.shift_rt -relief flat -image navforward22
+button .c.shift_lt -relief flat -image navback22
+button .c.shift_up -relief flat -image navup22
+button .c.shift_dn -relief flat -image navdown22
+
+
 #--------------------------------------------#
 
 tk_optionMenu .f.style pixit_style "square" "circle"
@@ -359,11 +365,21 @@ proc pixit_reset {} {
   set dy [expr {($H-$h)>>1}]
 
   .c move all $dx $dy
+  puts "move all $dx $dy"
 
   set ::pixit_ulx $dx
   set ::pixit_uly $dy
   set ::pixit_lrx [expr {$dx + $w}]
   set ::pixit_lry [expr {$dy + $h}]
+
+
+  set ccx [expr {($::pixit_ulx + $::pixit_lrx)/2.0}]
+  set ccy [expr {($::pixit_uly + $::pixit_lry)/2.0}]
+
+  .c create window [expr {$::pixit_ulx-6}] $ccy -window .c.shift_lt -anchor e
+  .c create window [expr {$::pixit_lrx+6}] $ccy -window .c.shift_rt -anchor w
+  .c create window $ccx [expr {$::pixit_uly-6}] -window .c.shift_up -anchor s
+  .c create window $ccx [expr {$::pixit_lry+6}] -window .c.shift_dn -anchor n
 
   # .c scan mark 0 0
   # .c scan dragto 60 60 1
